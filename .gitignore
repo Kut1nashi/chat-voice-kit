@@ -1,0 +1,36 @@
+# 依赖与运行时（都不要提交）
+node_modules/
+vendor/
+model/
+tmp/
+
+# 模型权重：体积大，且通常受训练数据/声音权利人限制
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+
+# 参考音频与训练/合成产物：默认不入库
+ref/*.wav
+ref/*.mp3
+ref/*.flac
+ref/*.m4a
+ref/*.txt
+ref/separated/
+out/
+audio/
+dataset/
+
+# 运行状态与私密信息
+state/
+*.log
+.env
+.env.*
+!.env.example
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
