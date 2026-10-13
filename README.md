@@ -1,6 +1,6 @@
 # chat-voice-kit
 
-给聊天机器人（QQ / Discord / 自建 IM 都行）用的**本地语音收发套件**——两条腿：
+给聊天机器人（QQ / Discord / 自建 IM 都行）用的“本地语音收发套件”
 
 - **识别（STT）**：QQ SILK / amr / mp3 / wav… → 16k 单声道 → [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) + SenseVoice → 文本
 - **合成（TTS）**：文本 → [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) v4 零样本音色克隆 → wav（带首尾留白、尾静音裁剪）
@@ -16,34 +16,25 @@
 
 ---
 
-## 合规：什么能发，什么不能发
+## 合规：
 
-**这段比代码重要，先看。**
+**这段比代码重要。**
 
-### ✅ 可以开源的部分（就是本仓库的内容）
+### ✅ 可以开源的部分
 
-| 东西 | 为什么可以 |
-| --- | --- |
 | `src/tts-core.cjs`、`src/stt-core.cjs` | 我们自己写的胶水代码，MIT 授权 |
 | 调用 GPT-SoVITS / sherpa-onnx 的方式 | 两个上游都是 MIT / Apache-2.0，是"调用"不是"再分发" |
 | SILK 解析、ffmpeg 调参、切分/种子/留白这些经验 | 事实性技术发现，随便发 |
 
 ### ❌ 不能发到 GitHub 的部分
 
-| 东西 | 为什么不行 |
-| --- | --- |
 | **微调出来的声音模型**（`*.pth` / `*.ckpt`） | 权重是从某个具体人的录音里学出来的音色。**声音人格权（公开权）属于那位本人**，未经书面授权发布权重 = 侵权，和"开源代码"是两回事 |
 | **参考音频**（切出来的几秒人声） | 素材通常来自番剧 / 游戏 / 直播，素材本身还有一层版权 |
 | **训练集**（`dataset/`、切片 wav） | 同上，且往往是最直接的侵权证据 |
 | **和某个具体角色绑定的角色卡 / 人设 / 提示词** | 角色形象属于 IP 方 |
 | **配置里的个人信息** | QQ 号、群号、token、绝对路径、聊天记录 |
 
-**结论：这个项目可以发，但必须以「框架 + 你自己提供合法音色」的形态发。**
-把 `ref/` 留空、把 `model/` 和 `frozen/` 排除在仓库外、给你的 README 写清
-"请使用你有权使用的声音"——这样它就是一个干净的工具项目，而不是一个盗版音色分发包。
-
-`.gitignore` 已经默认挡住 `*.pth` / `*.ckpt` / `*.onnx` / `ref/*.wav` / `out/` / `state/`，
-**但推之前还是自己 `git status` 看一遍**，别把不该发的东西带上去。
+"请使用你有权使用的声音"
 
 ---
 
@@ -136,9 +127,9 @@ const { text, lang, ms: sttMs } = await stt.transcribeBuffer(buf);
 
 ---
 
-## 调参记录（都是实测，不是抄文档）
+## 调参记录
 
-见 [`docs/tuning-notes.md`](docs/tuning-notes.md)。几句最有用的：
+见 [`docs/tuning-notes.md`](docs/tuning-notes.md)。
 
 - **`text_split_method` 千万别用 `cut5`**：它按标点把话切成碎片分别合成再拼，
   短句开头会被念歪甚至吃掉；用 `cut2`（约 50 字才切）。
