@@ -1,0 +1,38 @@
+{
+  "name": "chat-voice-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "本地语音收发套件：QQ SILK/普通音频 → SenseVoice 转写，文本 → GPT-SoVITS v4 语音合成。全部离线，模型自带。",
+  "license": "MIT",
+  "author": "Kut1nashi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kut1nashi/chat-voice-kit.git"
+  },
+  "homepage": "https://github.com/Kut1nashi/chat-voice-kit#readme",
+  "type": "commonjs",
+  "main": "src/tts-core.cjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "say": "node examples/say.cjs",
+    "stt": "node examples/stt-cli.cjs",
+    "check": "node src/tts-core.cjs --check && node src/stt-core.cjs --check"
+  },
+  "optionalDependencies": {
+    "sherpa-onnx-node": "^1.13.8",
+    "silk-wasm": "^3.7.1",
+    "@ffmpeg-installer/win32-x64": "^4.1.0"
+  },
+  "keywords": [
+    "tts",
+    "stt",
+    "voice-clone",
+    "gpt-sovits",
+    "sensevoice",
+    "sherpa-onnx",
+    "silk",
+    "qq"
+  ]
+}
