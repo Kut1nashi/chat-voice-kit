@@ -14,6 +14,8 @@
    播放/发送 ◄── wav ◄── tts-core.cjs ◄───────────────────────┘
 ```
 
+📺 视频讲解（B站）：https://www.bilibili.com/video/BV1uSpz6QEuR/
+
 ---
 
 ## 合规：
