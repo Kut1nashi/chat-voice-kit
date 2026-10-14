@@ -18,12 +18,17 @@
   "scripts": {
     "say": "node examples/say.cjs",
     "stt": "node examples/stt-cli.cjs",
+    "test": "node test/platform-paths.cjs",
     "check": "node src/tts-core.cjs --check && node src/stt-core.cjs --check"
   },
   "optionalDependencies": {
     "sherpa-onnx-node": "^1.13.8",
     "silk-wasm": "^3.7.1",
-    "@ffmpeg-installer/win32-x64": "^4.1.0"
+    "@ffmpeg-installer/win32-x64": "^4.1.0",
+    "@ffmpeg-installer/linux-x64": "^4.1.0",
+    "@ffmpeg-installer/linux-arm64": "^4.1.0",
+    "@ffmpeg-installer/darwin-x64": "^4.1.0",
+    "@ffmpeg-installer/darwin-arm64": "^4.1.0"
   },
   "keywords": [
     "tts",

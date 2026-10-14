@@ -19,7 +19,9 @@
  * 用 cutReference() 可以从任意音视频文件里切出参考片段。
  *
  * 环境变量：
- *   VOICE_TTS_GSV_DIR   GPT-SoVITS 整合包根目录（含 runtime/python.exe、api_v2.py、ffmpeg.exe）
+ *   VOICE_TTS_GSV_DIR   GPT-SoVITS 整合包根目录（含 api_v2.py、GPT_SoVITS/；Windows 整合包另含 runtime/python.exe、ffmpeg.exe）
+ *   VOICE_TTS_PY        Python 解释器（默认按平台推断，Linux/macOS 建议显式指定自己的 venv）
+ *   VOICE_TTS_FFMPEG    ffmpeg 可执行文件（默认：整合包自带 → npm 装的 → PATH 上的）
  *   VOICE_TTS_REF       参考音频路径（默认 <项目根>/ref/reference.wav）
  *   VOICE_TTS_HOST/PORT 服务地址（默认 127.0.0.1:9880）
  *   VOICE_TTS_IDLE_MS   空闲多久后自动卸载服务（默认 600000；0 = 常驻不卸载）
@@ -36,13 +38,61 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 const REF_DIR = path.join(PROJECT_ROOT, 'ref');
 const OUT_DIR = path.join(PROJECT_ROOT, 'out');
 
+// ── 跨平台取路径 ─────────────────────────────────────────────────────────────
+// Windows 整合包是 runtime/python.exe + ffmpeg.exe；Linux/macOS 没有统一布局（多半是自己
+// 建的 conda/venv），所以下面按平台挑默认值，全部可以被环境变量覆盖。
+const IS_WIN = process.platform === 'win32';
+const EXE = IS_WIN ? '.exe' : '';
+
+/** 在 PATH 上找一个可执行文件，返回绝对路径；找不到返回 null。 */
+function which(cmd) {
+  const dirs = String(process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  const exts = IS_WIN
+    ? String(process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';').filter(Boolean)
+    : [''];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const full = path.join(dir, cmd + ext);
+      if (exists(full)) return full;
+    }
+  }
+  return null;
+}
+
+/** 返回候选列表里第一个存在的路径；都找不到返回 null。 */
+function firstExisting(list) {
+  for (const f of list) if (f && exists(f)) return f;
+  return null;
+}
+
 // GPT-SoVITS 整合包位置（必须用环境变量指定，仓库里不含整合包）
 const GSV_DIR = process.env.VOICE_TTS_GSV_DIR
   || path.join(PROJECT_ROOT, 'vendor', 'GPT-SoVITS');
-const PY = process.env.VOICE_TTS_PY || path.join(GSV_DIR, 'runtime', 'python.exe');
 const API = path.join(GSV_DIR, 'api_v2.py');
-const FFMPEG = process.env.VOICE_TTS_FFMPEG || path.join(GSV_DIR, 'ffmpeg.exe');
 const CFG = path.join(GSV_DIR, 'GPT_SoVITS', 'configs', 'tts_infer.yaml');
+
+// Python 解释器：Windows 用整合包自带的 runtime/python.exe；Linux/macOS 依次找整合包/venv 里的
+// python，最后退回 PATH 上的 python3（那个解释器得装了 GPT-SoVITS 依赖，否则显式设 VOICE_TTS_PY）。
+const PY = process.env.VOICE_TTS_PY || firstExisting(IS_WIN
+  ? [path.join(GSV_DIR, 'runtime', 'python.exe')]
+  : [
+      path.join(GSV_DIR, 'runtime', 'python'),
+      path.join(GSV_DIR, 'runtime', 'bin', 'python'),
+      path.join(GSV_DIR, '.venv', 'bin', 'python'),
+      path.join(GSV_DIR, 'venv', 'bin', 'python')
+    ])
+  || (IS_WIN ? path.join(GSV_DIR, 'runtime', 'python.exe')
+             : which('python3') || which('python') || 'python3');
+
+// ffmpeg：整合包自带优先，其次 npm 按平台装的 @ffmpeg-installer/<platform>-<arch>，最后 PATH 上的。
+const FFMPEG = process.env.VOICE_TTS_FFMPEG
+  || firstExisting([
+      path.join(GSV_DIR, `ffmpeg${EXE}`),
+      path.join(PROJECT_ROOT, 'node_modules', '@ffmpeg-installer',
+        `${process.platform}-${process.arch}`, `ffmpeg${EXE}`)
+    ])
+  || which('ffmpeg')
+  || (IS_WIN ? path.join(GSV_DIR, 'ffmpeg.exe') : `ffmpeg${EXE}`);
 
 const DEFAULT_REF = process.env.VOICE_TTS_REF || path.join(REF_DIR, 'reference.wav');
 const DEFAULT_REF_TEXT_FILE = DEFAULT_REF.replace(/\.[^.]+$/u, '.txt');
