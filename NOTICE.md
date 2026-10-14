@@ -9,7 +9,7 @@
 | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)（`sherpa-onnx-node` 1.13.8） | 语音识别推理引擎 | Apache-2.0 | `npm i sherpa-onnx-node` |
 | SenseVoice 模型（`model.int8.onnx` + `tokens.txt`） | 识别模型权重 | 上游未见随包许可文件，**请以 FunAudioLLM/SenseVoice 官方仓库的许可为准，本仓库不转售不分发** | 从上游 / sherpa-onnx 模型发布页自行下载 |
 | [silk-wasm](https://github.com/idranme/silk-wasm) 3.7.1 | QQ SILK 语音解码 | MIT | `npm i silk-wasm` |
-| [ffmpeg](https://ffmpeg.org/)（`@ffmpeg-installer/win32-x64` 4.1.0） | 音频转码 | **GPLv3**（该 npm 包声明） | `npm i @ffmpeg-installer/win32-x64`，或自备 ffmpeg 用 `VOICE_STT_FFMPEG` / `VOICE_TTS_FFMPEG` 指定 |
+| [ffmpeg](https://ffmpeg.org/)（`@ffmpeg-installer/<platform>-<arch>`，按当前平台自动选） | 音频转码 | **GPLv3**（该 npm 包声明） | `npm i` 会自动装当前平台的包，或自备 ffmpeg 用 `VOICE_STT_FFMPEG` / `VOICE_TTS_FFMPEG` 指定 |
 
 ## 分发 ffmpeg 时的注意点
 

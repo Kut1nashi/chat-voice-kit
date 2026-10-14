@@ -15,7 +15,7 @@
  * 环境变量：
  *   VOICE_STT_MODEL_DIR 模型目录（默认 <项目根>/model，需含 model.int8.onnx + tokens.txt）
  *   VOICE_STT_LANG      SenseVoice language（默认 zh）
- *   VOICE_STT_FFMPEG    ffmpeg 可执行文件路径（默认用 node_modules 里装的）
+ *   VOICE_STT_FFMPEG    ffmpeg 可执行文件路径（默认用 npm 按平台装的；没装则用 PATH 上的 ffmpeg）
  *   VOICE_STT_THREADS   推理线程数（默认 2）
  */
 const fs = require('fs');
@@ -25,13 +25,48 @@ const { spawn } = require('child_process');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const MODEL_DIR = process.env.VOICE_STT_MODEL_DIR || path.join(PROJECT_ROOT, 'model');
-const FFMPEG = process.env.VOICE_STT_FFMPEG
-  || path.join(PROJECT_ROOT, 'node_modules', '@ffmpeg-installer', 'win32-x64', 'ffmpeg.exe');
 const MODEL = path.join(MODEL_DIR, 'model.int8.onnx');
 const TOKENS = path.join(MODEL_DIR, 'tokens.txt');
 const SAMPLE_RATE = 16000;
 const LANGUAGE = process.env.VOICE_STT_LANG || 'zh';
 const SILK_MAGIC = Buffer.from('#!SILK_V3');
+
+// ── 跨平台取 ffmpeg ──────────────────────────────────────────────────────────
+// 默认用 npm 按当前平台装的 @ffmpeg-installer/<platform>-<arch>；没装就退回 PATH 上的 ffmpeg。
+// （Windows 平台包是 ffmpeg.exe，Linux/macOS 是无扩展名的 ffmpeg。）
+const IS_WIN = process.platform === 'win32';
+const EXE = IS_WIN ? '.exe' : '';
+
+function exists(f) {
+  try { return fs.existsSync(f); } catch { return false; }
+}
+
+/** 在 PATH 上找一个可执行文件，返回绝对路径；找不到返回 null。 */
+function which(cmd) {
+  const dirs = String(process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  const exts = IS_WIN
+    ? String(process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';').filter(Boolean)
+    : [''];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const full = path.join(dir, cmd + ext);
+      if (exists(full)) return full;
+    }
+  }
+  return null;
+}
+
+/** 返回候选列表里第一个存在的路径；都找不到返回 null。 */
+function firstExisting(list) {
+  for (const f of list) if (f && exists(f)) return f;
+  return null;
+}
+
+const FFMPEG = process.env.VOICE_STT_FFMPEG
+  || firstExisting([path.join(PROJECT_ROOT, 'node_modules', '@ffmpeg-installer',
+      `${process.platform}-${process.arch}`, `ffmpeg${EXE}`)])
+  || which('ffmpeg')
+  || `ffmpeg${EXE}`;
 
 let _silk = null;
 let _sherpa = null;

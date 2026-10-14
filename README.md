@@ -42,32 +42,65 @@
 
 ## 安装
 
+套件本体（Node 侧）三步所有平台一致：
+
 ```bash
 git clone https://github.com/Kut1nashi/chat-voice-kit.git
 cd chat-voice-kit
-npm install            # 装 sherpa-onnx-node / silk-wasm / ffmpeg（可选依赖）
+npm install            # 装 sherpa-onnx-node / silk-wasm / ffmpeg（按平台自动选，均可选依赖）
 ```
 
-### 合成侧：GPT-SoVITS
+**识别侧（SenseVoice）部署三个平台一样**：把 `model.int8.onnx` 和 `tokens.txt` 放进 `model/`，
+或设 `VOICE_STT_MODEL_DIR` 指向它们所在的目录。下面按平台说合成侧。部署完用 `npm run check` 自检
+（会打印实际解析到的 python / ffmpeg / 模型路径）。
 
-1. 下载 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)（本套件在 v4 整合包 `20250529` 上验证）。
-2. 用环境变量指向它（默认找 `<项目根>/vendor/GPT-SoVITS`）：
+### Windows（有官方整合包，最省事）
+
+> 需要 NVIDIA GPU + CUDA，整合包已带运行时。
+
+下载 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) v4 整合包（本套件在 `20250529` 上验证），
+解压到任意目录，然后指向它（默认也会找 `<项目根>/vendor/GPT-SoVITS`）：
+
+```bat
+set VOICE_TTS_GSV_DIR=D:\GPT-SoVITS-v4-20250529
+```
+
+整合包自带 `runtime\python.exe` 和 `ffmpeg.exe`，**Python 和 ffmpeg 都不用另外配**。
+接着在 `GPT_SoVITS/configs/tts_infer.yaml` 的 `custom:` 段里指定权重
+（`t2s_weights_path`、`vits_weights_path`、`device: cuda`、`is_half: true`、`version: v4`），
+再放好参考音频 `ref/reference.wav`（+ 同名 `.txt` 写它的原文，强烈建议）。
+
+### Linux
+
+> Linux **没有官方整合包**，要自己拉源码 + 建虚拟环境；同样需要 NVIDIA GPU + CUDA
+> （也可以退回 CPU，但合成会明显更慢）。
+
+先拉源码、建虚拟环境：
 
 ```bash
-VOICE_TTS_GSV_DIR=D:/somewhere/GPT-SoVITS-v4-20250529
+git clone https://github.com/RVC-Boss/GPT-SoVITS.git ~/GPT-SoVITS
+cd ~/GPT-SoVITS && python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-3. 在 `GPT_SoVITS/configs/tts_infer.yaml` 的 `custom:` 段里指定你要用的权重：
-   `t2s_weights_path`（GPT 权重）、`vits_weights_path`（SoVITS 权重）、`device: cuda`、`is_half: true`、`version: v4`。
-4. 放好参考音频 `ref/reference.wav`（+ 同名 `.txt` 写它的原文）。
-
-### 识别侧：SenseVoice 模型
-
-把模型的 `model.int8.onnx` 和 `tokens.txt` 放进 `model/`，或：
+然后指向它，**关键是把 `VOICE_TTS_PY` 指到你那个虚拟环境的 python**：
 
 ```bash
-VOICE_STT_MODEL_DIR=D:/somewhere/sense-voice-model
+export VOICE_TTS_GSV_DIR=$HOME/GPT-SoVITS
+export VOICE_TTS_PY=$HOME/GPT-SoVITS/venv/bin/python
 ```
+
+模块会按平台自动找 `<GSV_DIR>/runtime/python`、`runtime/bin/python`、`.venv/bin/python`、
+`venv/bin/python`，最后才退回系统 `python3`——所以**把 venv 建在 `<GSV_DIR>/venv` 的话，
+`VOICE_TTS_PY` 那行可以省**。之后和 Windows 一样：改 `tts_infer.yaml` 的 `custom:` 段、放参考音频。
+
+ffmpeg 不用管：`npm install` 已经装了当前平台的静态包，系统自己装了 ffmpeg 也行——模块按
+「整合包自带 → npm 按平台装的 → `PATH` 上的」依次找。
+
+### macOS
+
+部署方式和 Linux 一样（源码 + venv）。但 GPT-SoVITS 在 macOS 上只能用 CPU / MPS，合成明显更慢；
+识别侧（SenseVoice，CPU）可正常使用。
 
 ---
 
@@ -79,6 +112,9 @@ VOICE_STT_MODEL_DIR=D:/somewhere/sense-voice-model
 # 环境自检
 node src/tts-core.cjs --check
 node src/stt-core.cjs --check
+
+# 跨平台路径解析自测（模拟 win32 / linux / darwin）
+npm test
 
 # 合成一句话
 node examples/say.cjs "おはよう。今日もかわいいね。"
@@ -114,7 +150,9 @@ const { text, lang, ms: sttMs } = await stt.transcribeBuffer(buf);
 
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
-| `VOICE_TTS_GSV_DIR` | `<root>/vendor/GPT-SoVITS` | GPT-SoVITS 整合包根目录 |
+| `VOICE_TTS_GSV_DIR` | `<root>/vendor/GPT-SoVITS` | GPT-SoVITS 整合包 / 源码目录 |
+| `VOICE_TTS_PY` | 按平台推断 | Python 解释器；Linux / macOS 指到你自己的 venv |
+| `VOICE_TTS_FFMPEG` | 整合包自带 → npm 装的 → `PATH` | ffmpeg 可执行文件 |
 | `VOICE_TTS_REF` | `<root>/ref/reference.wav` | 参考音频 |
 | `VOICE_TTS_HOST` / `VOICE_TTS_PORT` | `127.0.0.1` / `9880` | 合成服务地址（可以复用你已经起好的实例） |
 | `VOICE_TTS_IDLE_MS` | `600000` | 空闲卸载毫秒，`0` = 常驻 |
@@ -125,7 +163,7 @@ const { text, lang, ms: sttMs } = await stt.transcribeBuffer(buf);
 | `VOICE_TTS_FADE_MS` | `0` | 淡出（默认关，别开，见调参记录） |
 | `VOICE_STT_MODEL_DIR` | `<root>/model` | 识别模型目录 |
 | `VOICE_STT_LANG` | `zh` | SenseVoice 语种；片假名密集的日语请改 `ja` |
-| `VOICE_STT_FFMPEG` | 依赖包里的 | 自备 ffmpeg 时指定 |
+| `VOICE_STT_FFMPEG` | npm 按平台装的 → `PATH` | 自备 ffmpeg 时指定 |
 
 ---
 
